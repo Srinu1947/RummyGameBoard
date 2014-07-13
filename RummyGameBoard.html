@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<!-- Scripts and CSS -->
+		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.3/jquery.mobile-1.4.3.min.css" />
+		<script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+		<script src="https://code.jquery.com/mobile/1.4.3/jquery.mobile-1.4.3.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.min.js"></script>
+		<style>
+			.controlgroup-textinput{
+			    padding-top:.22em;
+			    padding-bottom:.22em;
+			}
+		</style>
+	</head>
+	<body>
+		<div id='headerHolder'></div>
+		<div id="mainContent"></div>
+		<script type="text/template" id="headerContent">
+			<div data-role="header" data-theme='b'>
+				<button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-left ui-icon-home ui-btn-icon-notext ui-btn-b" id="homeButton">Home</button>
+				<h1>{{message}}</h1>
+				{{#needAddUser}}
+				<button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-right ui-icon-plus ui-btn-icon-notext ui-btn-b" id="addUserBtn">
+				{{/needAddUser}}
+			</div>
+		</script> 
+
+		<script id="mainTemplate" type="text/template">
+			<input type="text" placeholder="Enter Team Name" id="teamName">
+			<input type="number" data-clear-btn="true" placeholder="Enter Game Total Score" id="gameTotalScore">
+			<input type="number" data-clear-btn="true" placeholder="Enter Fold Score" id="foldScore">
+		    <button id="renderNameView" class="ui-btn ui-btn-b ui-shadow ui-corner-all ui-btn-icon-right ui-icon-arrow-r">Continue</button>
+		</script>
+		
+		<script type="text/template" id="addRemoveView">
+			<a href="#" id='ui-icon-plus' class="ui-shadow ui-btn ui-corner-all ui-btn-inline ui-icon-plus ui-btn-icon-notext ui-btn-b ui-mini">icon only button</a>
+			<a href="#" id='ui-icon-minus' class="ui-shadow ui-btn ui-corner-all ui-btn-inline ui-icon-minus ui-btn-icon-notext ui-btn-b ui-mini">icon only button</a>
+		</script>
+
+		<script type="text/template" id="gameTemplate">
+			<table>
+				<tr>
+					<td> <label>Name</label> </td>
+					<td> <input type="text"> </td>
+					<td> <button>Fold</button> </td>
+					<td> <button>Log</button> </td>
+					<td><h1>Total</h1></td>
+				</tr>
+				</tr>
+			</table>
+		</script>
+
+		<script type="text/template" id='addUserTemplate'>
+			<table>
+				<tr>
+				<td><input type="text" class="ui-mini" id="userNameEle" placeholder="Enter User Name"></td>
+				<td>
+					<button class="ui-btn ui-shadow ui-corner-all ui-icon-check ui-btn-icon-notext ui-btn-b ui-btn-inline" id="addIndividualUser"></button>
+				</td>
+				<td>
+					<button class="ui-btn ui-shadow ui-corner-all ui-icon-minus ui-btn-icon-notext ui-btn-b ui-btn-inline" id="removeIndividualUser"></button>
+				</td>
+				<tr>
+			</table>
+		</script>
+
+		<script type="text/javascript">
+		$(document).ready(function(){
+			var SampleObj = Backbone.View.extend({
+				initialize: function(){
+					this.teamName;
+					this.teamMembers = [];
+					this.renderLandingTemplate();
+				},
+				el:'#mainContent',
+				events: {
+					'click #renderNameView': 'handleRenderNameView',
+					'click #addIndividualUser': 'addIndividualUser',
+					'click #removeIndividualUser': 'removeIndividualUser',
+					'click #startGameView': 'startGameView'
+				},
+				startGameView: function(){
+					this.appendHeader("Game "+this.teamName, false);
+					var template = $('#gameTemplate').html();
+					this.$el.html(template).trigger('create');
+					this.addClickEventHomeBtn();
+				},
+				removeIndividualUser: function(event){
+					var removeBtnEle = $(event.target.parentElement.parentElement).find("#userNameEle"),
+						userText = removeBtnEle.val();
+					var index = this.teamMembers.indexOf(userText);
+					if(index >= 0)
+						this.teamMembers.splice(index,1);
+					$($(event.target).parents('table')).remove();
+				},
+				addIndividualUser: function(event){
+					var textEle = $(event.target.parentElement.parentElement).find("#userNameEle"),
+						userText = textEle.val();
+					this.teamMembers.push(userText);
+					$(event.target).addClass('ui-state-disabled');
+					$(textEle).addClass('ui-state-disabled');
+				},
+				handleRenderNameView: function(){
+					this.teamName = $('#teamName').val();
+					this.appendHeader("Who's Playing in team "+this.teamName+"?", true);
+					this.addClickEventHomeBtn();
+					this.addClickEventForUserBtn();
+					var button = '<button id="startGameView" class="ui-btn ui-btn-b ui-shadow ui-corner-all ui-btn-icon-right ui-icon-arrow-r">Start Game</button>';
+					this.$el.html(button).trigger('create');
+				},
+				handleAddUserClick: function(){
+					var template = $('#addUserTemplate').html();
+					this.$el.prepend(template).trigger('create');
+				},
+				renderLandingTemplate: function(){
+					this.appendHeader("Welcome to Game Board", false);
+					var template = $('#mainTemplate').html();
+					this.$el.html(template).trigger('create');
+				},
+				addClickEventHomeBtn: function(){
+					var there = this;
+					$('#homeButton').click(function(){
+						there.renderLandingTemplate();
+					});
+				},
+				addClickEventForUserBtn: function(){
+					var there = this;
+					$('#addUserBtn').click(function(){
+						there.handleAddUserClick();
+					});
+				},
+				appendHeader: function(message, needAddUser){
+					$('#headerHolder').html(Mustache.render($('#headerContent').html(), {message: message, needAddUser: needAddUser})).trigger('create');
+				}
+			});
+			new SampleObj();
+		});
+		</script>
+		
+	</body>
+</html>
