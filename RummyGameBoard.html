@@ -124,7 +124,8 @@
 						this.$el.html(button).trigger('create');
 					},
 					handleAddUserClick: function(){
-						this.removeErrorHeaders();
+						if(!this.teamMembers.length)
+							this.removeErrorHeaders();
 						var template = $('#addUserTemplate').html();
 						this.$el.prepend(template).trigger('create');
 					},
@@ -150,6 +151,7 @@
 					},
 					removeErrorHeaders: function(){
 						this.$el.find('p').remove();
+						this.$el.find('table').remove();
 					}
 				});
 				
