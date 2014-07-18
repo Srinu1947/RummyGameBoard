@@ -29,13 +29,13 @@
 				<button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-left ui-icon-home ui-btn-icon-notext ui-btn-b" id="homeButton">Home</button>
 				<h1>{{message}}</h1>
 				{{#needAddUser}}
-				<button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-right ui-icon-user ui-btn-icon-notext ui-btn-b" id="addUserBtn">
+				<button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-left ui-icon-user ui-btn-icon-notext ui-btn-b" id="addUserBtn">
 				{{/needAddUser}}
 			</div>
 		</script>
 		<!-- Teamplate for adding the users in the team -->
 		<script type="text/template" id='addUserTemplate'>
-			
+			<div id='addUserTableDiv'>
 				<table>
 					<tr>
 					<td><input type="text" class="ui-mini" id="userNameEle" placeholder="Enter User Name"></td>
@@ -47,13 +47,29 @@
 					</td>
 					<tr>
 				</table>
+			</div>
+		</script>
+
+		<!-- Template for Game Board -->
+		<script type="text/template" id="gameTemplate">
+			<table>
+			{{#players}}
+				<tr>
+					<td> <button class="ui-btn ui-mini ui-shadow ui-corner-all ui-btn-icon-left ui-icon-user ui-state-disabled">{{name}}</button> </td>
+					<td> <input type="number" data-clear-btn="true" placeholder="Enter Score"> </td>
+					<td> <button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-right ui-icon-plus ui-btn-icon-notext ui-btn-b" id="addUserBtn"> </td>
+					<td> <button class="ui-btn ui-btn-b ui-corner-all ui-mini">Fold</button> </td>
+					<td> <button class="ui-btn ui-mini ui-shadow ui-corner-all ui-btn-icon-left ui-icon-star ui-state-disabled">{{score}}</button></td>
+				</tr>
+			{{/players}}
+			</table>
 		</script>
 
 		<script type="text/javascript">
 			$(document).ready(function(){
 				/* Application Data */
 				var teamInfo = new Object();
-				teamInfo.teamMembers = {};
+				teamInfo.teamMembers = [];
 
 				/* Instance that holds each player details */
 				function Player(name){
@@ -80,18 +96,60 @@
 				appUtilities.appendHeader = function(message, needAddUser){
 					return Mustache.render($('#headerContent').html(), {message: message, needAddUser: needAddUser});
 				};
+				appUtilities.deletePlayer = function(givenName){
+					teamInfo.teamMembers = _.filter(teamInfo.teamMembers, function(member){
+						return member.name === givenName;
+					});
+				};
+				appUtilities.printPlayersInfo = function(){
+					_.each(teamInfo.teamMembers, function(member){
+						console.log(member.name);
+					});
+				};
 
 				/* Router for the application */
 				var GameRouter = Backbone.Router.extend({
+					initialize: function(){
+						this.mainContentView = new MainContentView();
+						this.userMangementView = new UserMangementView();
+						this.gameBoardView = new GameBoardView();
+					},
 					routes: {
 						'': 'mainContentCall',
-						'userManagementCall': 'userManagementCall'
+						'userManagementCall': 'userManagementCall',
+						'gameBoardViewCall': 'gameBoardViewCall'
 					},
 					mainContentCall: function(){
-						new MainContentView().render();		
+						this.mainContentView.render();		
 					},
 					userManagementCall: function(){
-						new UserMangementView().render();
+						this.userMangementView.render();
+					},
+					gameBoardViewCall: function(){
+						this.gameBoardView.render();
+					}
+				});
+
+				/* View for Game Board */
+				var GameBoardView = Backbone.View.extend({
+					initialize: function(){
+
+					},
+					el: '#mainContent',
+					events: {
+					},
+					render: function(){
+						this.$el.empty();
+
+						var jsonObj = new Object();
+						jsonObj.players = teamInfo.teamMembers;
+						var json2 = JSON.stringify(jsonObj);
+						var json = $.parseJSON(json2);
+						console.log(json);
+						this.$el.append(appUtilities.appendHeader("Game "+teamInfo.teamName, false)).trigger('create');
+						var template = $('#gameTemplate').html();
+						var view = Mustache.render(template, json);
+						this.$el.append(view).trigger('create');
 					}
 				});
 
@@ -105,40 +163,40 @@
 						'click #addUserBtn': 'addUserBtn',
 						'click #homeButton': 'navigateHome'
 					},
-					cleanup: function() {
-				        this.undelegateEvents();
-				        $(this.el).empty();
-				    },
 					initialize: function(){
-						// this.$el.empty();
-						this.$el.html('</div>');
 					},
 					addUserBtn: function(event){
 						$(this.$el.find('#addUserTableDiv')).prepend(this.getAddUserTemplate()).trigger('create');
 					},
 					removeIndividualUser: function(event){
-						console.log('in removeIndividualUser');
+						var tableEle = $(event.target).closest('table');
+							playerNameTextEle = $(tableEle).find('#userNameEle'),
+							playerName = playerNameTextEle.val();
+						appUtilities.deletePlayer(playerName);
+						$(tableEle).remove();
 					},
 					addIndividualUser: function(event){
-						console.log('in addIndividualUser');
+						var playerNameTextEle = $(event.target).closest('tr').find('#userNameEle');
+						var playerName = playerNameTextEle.val();
+						teamInfo.teamMembers.push(new Player(playerName));
+						$(playerNameTextEle).addClass('ui-state-disabled');
+						$(event.target).addClass('ui-state-disabled');
 					},
 					navigateToStartGame: function(){
-						console.log('in the navigateToStartGame');
+						router.navigate('gameBoardViewCall', {trigger:true});
 					},
 					navigateHome: function(){
-						console.log('navigateHome is called');
 						router.navigate('',{trigger:true});
 					},
 					render: function(){
+						this.$el.empty();
 						var header = appUtilities.appendHeader('Add Players in '+teamInfo.teamName, true);
 						this.$el.append(header).trigger('create');
-						// this.$el.append($('#addUserTemplate').html()).trigger('create');
-						this.$el.append("<div id='addUserTableDiv'></div>");
+						this.$el.append($('#addUserTemplate').html()).trigger('create');
 						this.$el.append('<button id="startGameBtn" class="ui-btn ui-btn-b ui-shadow ui-corner-all">Start Game</button>');
 					},
 					getAddUserTemplate: function(){
-						// return $($('#addUserTemplate').html()).find('table');
-						return $('#addUserTemplate').html();
+						return $($('#addUserTemplate').html()).find('table');
 					}
 				});
 
@@ -148,15 +206,10 @@
 					events: {
 						'click #renderUserManagement':'navigateToUserManagement'
 					},
-					cleanup: function() {
-				        this.undelegateEvents();
-				        $(this.el).empty();
-				    },
 					initialize: function(){
-						// this.$el.empty();
-						this.$el.html('</div>');
 					},
 					render: function(){
+						this.$el.empty();
 						var header = appUtilities.appendHeader("Welcome to Game Board", false);
 						var template = $('#mainTemplate').html();
 						this.$el.append(header).trigger('create');
