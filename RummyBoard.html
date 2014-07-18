@@ -19,8 +19,8 @@
 		<!-- Landing/Main template, renders after a refresh -->
 		<script id="mainTemplate" type="text/template">
 			<input type="text" placeholder="Enter Team Name" id="teamName">
-			<input type="number" data-clear-btn="true" placeholder="Enter Game Total Score" id="gameTotalScore">
-			<input type="number" data-clear-btn="true" placeholder="Enter Fold Score" id="foldScore">
+			<input type="number" placeholder="Enter Game Total Score" id="gameTotalScore">
+			<input type="number" placeholder="Enter Fold Score" id="foldScore">
 		    <button id="renderUserManagement" class="ui-btn ui-btn-b ui-shadow ui-corner-all ui-btn-icon-right ui-icon-arrow-r">Continue</button>
 		</script>
 		<!-- Teamplate for rendering Header in different views -->
@@ -55,11 +55,11 @@
 			<table>
 			{{#players}}
 				<tr>
-					<td> <button class="ui-btn ui-mini ui-shadow ui-corner-all ui-btn-icon-left ui-icon-user ui-state-disabled">{{name}}</button> </td>
-					<td> <input type="number" data-clear-btn="true" placeholder="Enter Score"> </td>
-					<td> <button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-right ui-icon-plus ui-btn-icon-notext ui-btn-b" id="addUserBtn"> </td>
-					<td> <button class="ui-btn ui-btn-b ui-corner-all ui-mini">Fold</button> </td>
-					<td> <button class="ui-btn ui-mini ui-shadow ui-corner-all ui-btn-icon-left ui-icon-star ui-state-disabled">{{score}}</button></td>
+					<td> <button class="ui-btn ui-mini ui-shadow ui-corner-all ui-btn-icon-left ui-icon-user" id='userNameBtn'>{{name}}</button> </td>
+					<td> <input type="number" placeholder="Enter Score" id='playerScoreText'> </td>
+					<td> <button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-right ui-icon-plus ui-btn-icon-notext ui-btn-b" id="addScoreBtn"> </td>
+					<td> <button class="ui-btn ui-btn-b ui-corner-all ui-mini" id='foldBtn'>Fold</button> </td>
+					<td> <button class="ui-btn ui-mini ui-shadow ui-corner-all ui-btn-icon-left ui-icon-star" id='scoreBtn'>{{score}}</button></td>
 				</tr>
 			{{/players}}
 			</table>
@@ -79,13 +79,13 @@
 					this.scores = [];
 					this.addScore = function(score){
 						this.scores.push(score);
-						this.score += score;
+						this.score += parseInt(score);
 						return this.score;
 					};
 					this.getPlayerName = function(){
 						return this.name;
 					},
-					this.addAddFoldScore = function(score){
+					this.addFoldScore = function(score){
 						this.numFolds++;
 						return this.addScore(score);
 					};
@@ -103,9 +103,14 @@
 				};
 				appUtilities.printPlayersInfo = function(){
 					_.each(teamInfo.teamMembers, function(member){
-						console.log(member.name);
+						console.log(member);
 					});
 				};
+				appUtilities.getPlayerInfoByName = function(name){
+					return _.find(teamInfo.teamMembers, function(player){
+						return player.name === name;
+					});
+				}
 
 				/* Router for the application */
 				var GameRouter = Backbone.Router.extend({
@@ -137,10 +142,13 @@
 					},
 					el: '#mainContent',
 					events: {
+						// 'click #userNameBtn': false,
+						// 'click #scoreBtn': false,
+						'click #addScoreBtn' : 'addScoreBtnClick',
+						'click #foldBtn': 'foldBtnClick'
 					},
 					render: function(){
 						this.$el.empty();
-
 						var jsonObj = new Object();
 						jsonObj.players = teamInfo.teamMembers;
 						var json2 = JSON.stringify(jsonObj);
@@ -150,6 +158,31 @@
 						var template = $('#gameTemplate').html();
 						var view = Mustache.render(template, json);
 						this.$el.append(view).trigger('create');
+					},
+					addScoreBtnClick: function(event){
+						var table = $(event.target).closest('tr'),
+						playerScoreBtn = table.find('#playerScoreText'),
+						playerName = table.find('#userNameBtn').text();
+						var updatedScore = this.addScoreToPlayer(playerName, playerScoreBtn.val(), false);
+						
+						/* Updating the details */
+						playerScoreBtn.val('');
+						table.find('#scoreBtn').text(updatedScore);
+						appUtilities.printPlayersInfo();
+
+					},
+					foldBtnClick: function(event){
+						console.log(' in foldBtnClick');
+					},
+					addScoreToPlayer: function(name, score, isFold){
+						if(name === '' || score === '')
+							return '0';
+						var player = appUtilities.getPlayerInfoByName(name);
+						if(isFold)
+							player.addFoldScore(score);
+						else
+							player.addScore(score);
+						return player.score;
 					}
 				});
 
