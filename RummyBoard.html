@@ -22,6 +22,14 @@
 			<input type="number" placeholder="Enter Game Total Score" id="gameTotalScore">
 			<input type="number" placeholder="Enter Fold Score" id="foldScore">
 		    <button id="renderUserManagement" class="ui-btn ui-btn-b ui-shadow ui-corner-all ui-btn-icon-right ui-icon-arrow-r">Continue</button>
+		    <h4 class="ui-bar ui-bar-a ui-corner-all ui-icon-alert ui-btn-icon-left">Board Information - Please read before start</h4>
+		    <div class="ui-body ui-body-a ui-corner-all">
+		    	<ul>
+		    		<li>Defult Name is "My Team" TotalScore is 210, Fold Score is 25</li>
+		    		<li>You can continue with above default values</li>
+		    		<li></li>
+		    	</ul>
+		    </div>
 		</script>
 		<!-- Teamplate for rendering Header in different views -->
 		<script type="text/template" id="headerContent">
@@ -45,6 +53,9 @@
 					<td>
 						<button class="ui-btn ui-shadow ui-corner-all ui-icon-minus ui-btn-icon-notext ui-btn-b ui-btn-inline" id="removeIndividualUser"></button>
 					</td>
+					<td>
+						<p id='errorMessage' style='color:red'></p>
+					</td>
 					<tr>
 				</table>
 			</div>
@@ -65,11 +76,34 @@
 			</table>
 		</script>
 
+		<script type="text/template" id='playerDetailTemplate'>
+			<div data-role="header" data-theme='b' id='headerDiv'>
+				<button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-left ui-icon-back ui-btn-icon-notext ui-btn-b" id="backButton"></button>
+				<h1>{{name}}</h1>
+			</div>
+			<table>
+				<tr><th>Total Score</th><td>{{score}}</td></tr>
+				<tr><th>Number Of Folds</th><td>{{numFolds}}</td></tr>
+				<tr><th>Score Details</th></tr>
+				{{#scores}}
+					<tr><td></td><td>{{.}}</td></tr>
+				{{/scores}}
+			</table>
+		</script>
+
 		<script type="text/javascript">
 			$(document).ready(function(){
+
 				/* Application Data */
 				var teamInfo = new Object();
+				teamInfo.foldScore = 25;
+				teamInfo.teamName = 'My Team';
+				teamInfo.totalScore = 210;
 				teamInfo.teamMembers = [];
+				teamInfo.errorMessages = {
+					noPlayers:'Forgot to register player',
+					noPlayerName:'Please enter player name'
+				};
 
 				/* Instance that holds each player details */
 				function Player(name){
@@ -110,7 +144,13 @@
 					return _.find(teamInfo.teamMembers, function(player){
 						return player.name === name;
 					});
-				}
+				};
+				appUtilities.resetAppInfo = function(){
+					teamInfo.foldScore = 25;
+					teamInfo.teamName = 'My Team';
+					teamInfo.totalScore = 210;
+					teamInfo.teamMembers = [];
+				};
 
 				/* Router for the application */
 				var GameRouter = Backbone.Router.extend({
@@ -118,13 +158,16 @@
 						this.mainContentView = new MainContentView();
 						this.userMangementView = new UserMangementView();
 						this.gameBoardView = new GameBoardView();
+						this.playerDetailView = new PlayerDetailView();
 					},
 					routes: {
 						'': 'mainContentCall',
 						'userManagementCall': 'userManagementCall',
-						'gameBoardViewCall': 'gameBoardViewCall'
+						'gameBoardViewCall': 'gameBoardViewCall',
+						'playerDetailCall?:name': 'playerDetailViewCall'
 					},
 					mainContentCall: function(){
+						appUtilities.resetAppInfo();
 						this.mainContentView.render();		
 					},
 					userManagementCall: function(){
@@ -132,6 +175,31 @@
 					},
 					gameBoardViewCall: function(){
 						this.gameBoardView.render();
+					},
+					playerDetailViewCall: function(name){
+						this.playerDetailView.render(name);
+					}
+				});
+
+				/* Player details View */
+				var PlayerDetailView = Backbone.View.extend({
+					initialize: function(){
+
+					},
+					el:'#mainContent',
+					events:{
+						'click #backButton': 'navigateToGameBoardView'
+					},
+					render: function(playerName){
+						this.$el.empty();
+						var player = appUtilities.getPlayerInfoByName(playerName),
+							json = JSON.stringify(player)
+							json2 = $.parseJSON(json);
+						var template = $('#playerDetailTemplate').html();
+						this.$el.html(Mustache.render(template, json2)).trigger('create');
+					},
+					navigateToGameBoardView: function(event){
+						router.navigate('gameBoardViewCall', {trigger: true});
 					}
 				});
 
@@ -142,10 +210,9 @@
 					},
 					el: '#mainContent',
 					events: {
-						// 'click #userNameBtn': false,
-						// 'click #scoreBtn': false,
 						'click #addScoreBtn' : 'addScoreBtnClick',
-						'click #foldBtn': 'foldBtnClick'
+						'click #foldBtn': 'foldBtnClick',
+						'click #userNameBtn': 'navigatePlayerDetailView'
 					},
 					render: function(){
 						this.$el.empty();
@@ -160,29 +227,43 @@
 						this.$el.append(view).trigger('create');
 					},
 					addScoreBtnClick: function(event){
-						var table = $(event.target).closest('tr'),
-						playerScoreBtn = table.find('#playerScoreText'),
-						playerName = table.find('#userNameBtn').text();
-						var updatedScore = this.addScoreToPlayer(playerName, playerScoreBtn.val(), false);
+						var tr = $(event.target).closest('tr'),
+						playerScoreText = tr.find('#playerScoreText'),
+						playerName = tr.find('#userNameBtn').text();
 						
+						if(playerName !== '' && playerScoreText.val() !== ''){
+							var updatedScore = this.addScoreToPlayer(playerName, playerScoreText.val(), false);
+							tr.find('#scoreBtn').text(updatedScore);
+						}						
 						/* Updating the details */
-						playerScoreBtn.val('');
-						table.find('#scoreBtn').text(updatedScore);
+						playerScoreText.val('');
 						appUtilities.printPlayersInfo();
-
 					},
 					foldBtnClick: function(event){
-						console.log(' in foldBtnClick');
+						var tr = $(event.target).closest('tr'),
+						playerName = tr.find('#userNameBtn').text();
+
+						if(playerName !== ''){
+							tr.find('#scoreBtn').text(updatedScore);
+							var updatedScore = this.addScoreToPlayer(playerName, teamInfo.foldScore, true);
+						}
+						/* Updating details */
+						tr.find('#scoreBtn').text(updatedScore);
+						appUtilities.printPlayersInfo();
 					},
 					addScoreToPlayer: function(name, score, isFold){
-						if(name === '' || score === '')
-							return '0';
 						var player = appUtilities.getPlayerInfoByName(name);
 						if(isFold)
 							player.addFoldScore(score);
 						else
 							player.addScore(score);
 						return player.score;
+					},
+					navigatePlayerDetailView: function(event){
+						var tr = $(event.target).closest('tr'),
+						playerName = tr.find('#userNameBtn').text();
+						// router.handlePlayerCall(playerName);
+						router.navigate('playerDetailCall?'+playerName, {trigger:true});
 					}
 				});
 
@@ -199,6 +280,10 @@
 					initialize: function(){
 					},
 					addUserBtn: function(event){
+						if(teamInfo.teamMembers.length)
+							this.addUser();
+					},
+					addUser: function(){
 						$(this.$el.find('#addUserTableDiv')).prepend(this.getAddUserTemplate()).trigger('create');
 					},
 					removeIndividualUser: function(event){
@@ -207,16 +292,36 @@
 							playerName = playerNameTextEle.val();
 						appUtilities.deletePlayer(playerName);
 						$(tableEle).remove();
+						if(!this.getAllUserNameTextEle().length)
+							this.addUser();
 					},
 					addIndividualUser: function(event){
-						var playerNameTextEle = $(event.target).closest('tr').find('#userNameEle');
-						var playerName = playerNameTextEle.val();
-						teamInfo.teamMembers.push(new Player(playerName));
-						$(playerNameTextEle).addClass('ui-state-disabled');
-						$(event.target).addClass('ui-state-disabled');
+						var tr = $(event.target).closest('tr'),
+							playerNameTextEle = tr.find('#userNameEle'),
+							errorMessage = tr.find('#errorMessage'),
+							playerName = playerNameTextEle.val();
+						if(playerName !== ''){
+							teamInfo.teamMembers.push(new Player(playerName));
+							$(playerNameTextEle).addClass('ui-state-disabled');
+							$(event.target).addClass('ui-state-disabled');
+							/* Remove error Message if exists */
+							errorMessage.text('');
+						} else {
+							errorMessage.text(teamInfo.errorMessages.noPlayerName);
+						}
+					},
+					isAnyEmptyNamed: function(){
+						var elements = this.getAllUserNameTextEle();
+						var test = _.find(elements, function(ele){
+							return $(ele).val() === '';
+						});
+						return _.isUndefined(test);
 					},
 					navigateToStartGame: function(){
-						router.navigate('gameBoardViewCall', {trigger:true});
+						if(!teamInfo.teamMembers.length || !this.isAnyEmptyNamed())
+							$(this.$el).find('#errorMessage').text(teamInfo.errorMessages.noPlayers);
+						else
+							router.navigate('gameBoardViewCall', {trigger:true});
 					},
 					navigateHome: function(){
 						router.navigate('',{trigger:true});
@@ -230,6 +335,9 @@
 					},
 					getAddUserTemplate: function(){
 						return $($('#addUserTemplate').html()).find('table');
+					},
+					getAllUserNameTextEle: function(){
+						return $('[id=userNameEle]');
 					}
 				});
 
@@ -243,15 +351,23 @@
 					},
 					render: function(){
 						this.$el.empty();
-						var header = appUtilities.appendHeader("Welcome to Game Board", false);
+						var header = appUtilities.appendHeader("Welcome to Rummy Game Board", false);
 						var template = $('#mainTemplate').html();
 						this.$el.append(header).trigger('create');
 						this.$el.append(template).trigger('create');
 					},
 					navigateToUserManagement: function(){
-						teamInfo.teamName = $('#teamName').val();
-						teamInfo.totalScore = $('#gameTotalScore').val();
-						teamInfo.foldScore = $('#foldScore').val();
+						var teamName = $('#teamName').val(),
+							totalScore = $('#gameTotalScore').val(),
+							foldScore = $('#foldScore').val();
+						
+						if(teamName !== '')
+							teamInfo.teamName = teamName;
+						if(totalScore !== '')
+							teamInfo.totalScore = totalScore;
+						if(foldScore !== '')
+							teamInfo.foldScore = foldScore;
+
 						router.navigate('userManagementCall', {trigger: true});
 					}
 				});
