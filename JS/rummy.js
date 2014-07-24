@@ -8,7 +8,8 @@ $(document).ready(function(){
 				teamInfo.teamMembers = [];
 				teamInfo.errorMessages = {
 					noPlayers:'Forgot to register player',
-					noPlayerName:'Please enter player name'
+					noPlayerName:'Please enter player name',
+					name_exists:'Name already registered'
 				};
 
 				/* Instance that holds each player details */
@@ -49,7 +50,8 @@ $(document).ready(function(){
 					jsonObj.players = teamInfo.teamMembers;
 					var json2 = JSON.stringify(jsonObj),
 						result = $.parseJSON(json2);
-					result.isEmpty = (teamInfo.teamMembers.length > 0);
+					result.isNotEmpty = (teamInfo.teamMembers.length > 0);
+					console.log(result);
 					return result;
 				};
 				appUtilities.printPlayersInfo = function(){
@@ -59,7 +61,7 @@ $(document).ready(function(){
 				};
 				appUtilities.getPlayerInfoByName = function(name){
 					return _.find(teamInfo.teamMembers, function(player){
-						return player.name === name;
+						return player.name.toUpperCase() === name.toUpperCase();
 					});
 				};
 				appUtilities.resetAppInfo = function(){
@@ -177,7 +179,6 @@ $(document).ready(function(){
 					navigatePlayerDetailView: function(event){
 						var tr = $(event.target).closest('tr'),
 						playerName = tr.find('#userNameBtn').text();
-						// router.handlePlayerCall(playerName);
 						router.navigate('playerDetailCall?'+playerName, {trigger:true});
 					},
 					handleBackButtonClick: function(){
@@ -202,8 +203,10 @@ $(document).ready(function(){
 						var header = appUtilities.appendHeader('Add Players in '+teamInfo.teamName, 'home', true);
 						this.$el.append(header).trigger('create');
 						var json = appUtilities.getWrappedPlayersJSON();
-
 						this.$el.append(Mustache.render($('#addUserTemplate').html(), json)).trigger('create');
+					},
+					renderRegisteredUsers: function(){
+
 					},
 					addUserBtn: function(event){
 						if(teamInfo.teamMembers.length)
@@ -226,7 +229,9 @@ $(document).ready(function(){
 							playerNameTextEle = tr.find('#userNameEle'),
 							errorMessage = tr.find('#errorMessage'),
 							playerName = playerNameTextEle.val();
-						if(playerName !== ''){
+						if(!_.isUndefined(appUtilities.getPlayerInfoByName(playerName))){
+							errorMessage.text(teamInfo.errorMessages.name_exists);
+						} else if(playerName !== ''){
 							teamInfo.teamMembers.push(new Player(playerName));
 							$(playerNameTextEle).addClass('ui-state-disabled');
 							$(event.target).addClass('ui-state-disabled');
@@ -244,7 +249,7 @@ $(document).ready(function(){
 						return _.isUndefined(test);
 					},
 					navigateToStartGame: function(){
-						if(!teamInfo.teamMembers.length || !this.isAnyEmptyNamed())
+						if(!teamInfo.teamMembers.length)
 							$(this.$el).find('#errorMessage').text(teamInfo.errorMessages.noPlayers);
 						else
 							router.navigate('gameBoardViewCall', {trigger:true});

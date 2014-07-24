@@ -63,16 +63,26 @@
 					</td>
 					<tr>
 				</table>
+			{{#isNotEmpty}}
+				{{#players}}
+				<table>
+					<tr>
+					<td><input type="text" class="ui-mini ui-state-disabled" id="userNameEle" placeholder="Enter User Name" value='{{name}}'></td>
+					<td>
+						<button class="ui-btn ui-shadow ui-corner-all ui-icon-check ui-btn-icon-notext ui-btn-b ui-btn-inline ui-state-disabled" id="addIndividualUser"></button>
+					</td>
+					<td>
+						<button class="ui-btn ui-shadow ui-corner-all ui-icon-minus ui-btn-icon-notext ui-btn-b ui-btn-inline" id="removeIndividualUser"></button>
+					</td>
+					<td>
+						<p id='errorMessage' style='color:red'></p>
+					</td>
+					<tr>
+				</table>
+				{{/players}}
+			{{/isNotEmpty}}
 			</div>
 			<button id="startGameBtn" class="ui-btn ui-btn-b ui-shadow ui-corner-all">Start Game</button>
-			{{#isEmpty}}
-			<h3 class="ui-bar ui-bar-a ui-corner-all">Registered Users</h3>
-			<div id='showRegisteredUsers'>
-				{{#players}}
-					<h4 class="ui-bar ui-bar-a ui-corner-all ui-icon-user ui-btn-icon-left">{{name}}</h4>
-				{{/players}}
-			</div>
-			{{/isEmpty}}
 		</script>
 		<!-- Template for Game Board -->
 		<script type="text/template" id="gameTemplate">
