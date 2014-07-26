@@ -51,7 +51,6 @@ $(document).ready(function(){
 					var json2 = JSON.stringify(jsonObj),
 						result = $.parseJSON(json2);
 					result.isNotEmpty = (teamInfo.teamMembers.length > 0);
-					console.log(result);
 					return result;
 				};
 				appUtilities.printPlayersInfo = function(){
@@ -118,7 +117,7 @@ $(document).ready(function(){
 						this.$el.html(Mustache.render(template, json2)).trigger('create');
 					},
 					navigateToGameBoardView: function(event){
-						router.navigate('gameBoardViewCall', {trigger: true});
+						window.history.back();
 					}
 				});
 
@@ -137,7 +136,6 @@ $(document).ready(function(){
 					render: function(){
 						this.$el.empty();
 						var json = appUtilities.getWrappedPlayersJSON();
-						console.log(json);
 						this.$el.append(appUtilities.appendHeader("Game "+teamInfo.teamName, 'back', false)).trigger('create');
 						var template = $('#gameTemplate').html();
 						var view = Mustache.render(template, json);
@@ -146,15 +144,19 @@ $(document).ready(function(){
 					addScoreBtnClick: function(event){
 						var tr = $(event.target).closest('tr'),
 						playerScoreText = tr.find('#playerScoreText'),
-						playerName = tr.find('#userNameBtn').text();
-						
-						if(playerName !== '' && playerScoreText.val() !== ''){
-							var updatedScore = this.addScoreToPlayer(playerName, playerScoreText.val(), false);
-							tr.find('#scoreBtn').text(updatedScore);
-						}						
-						/* Updating the details */
-						playerScoreText.val('');
-						appUtilities.printPlayersInfo();
+						playerName = tr.find('#userNameBtn').text(),
+						playerScore = playerScoreText.val();
+						if(!_.isNaN(parseInt(playerScore))){
+							if(playerName !== '' && playerScoreText.val() !== ''){
+								var updatedScore = this.addScoreToPlayer(playerName, playerScore, false);
+								tr.find('#scoreBtn').text(updatedScore);
+							}
+							/* Updating the details */
+							playerScoreText.val('');
+							playerScoreText.css('color','black');
+						} else {
+							playerScoreText.css('color','red');
+						}
 					},
 					foldBtnClick: function(event){
 						var tr = $(event.target).closest('tr'),
@@ -166,7 +168,6 @@ $(document).ready(function(){
 						}
 						/* Updating details */
 						tr.find('#scoreBtn').text(updatedScore);
-						appUtilities.printPlayersInfo();
 					},
 					addScoreToPlayer: function(name, score, isFold){
 						var player = appUtilities.getPlayerInfoByName(name);
@@ -204,9 +205,19 @@ $(document).ready(function(){
 						this.$el.append(header).trigger('create');
 						var json = appUtilities.getWrappedPlayersJSON();
 						this.$el.append(Mustache.render($('#addUserTemplate').html(), json)).trigger('create');
+						this.appendRegisteredUsers();
 					},
-					renderRegisteredUsers: function(){
-
+					appendRegisteredUsers: function(){
+						var there = this;
+						_.each(teamInfo.teamMembers, function(member){
+							var template = there.getAddUserTemplate(),
+								userInputField = $(template).find('input'),
+								userBtnField = $(template).find('#addIndividualUser');
+							userInputField.val(member.name);
+							userInputField.addClass('ui-state-disabled');
+							userBtnField.addClass('ui-state-disabled');
+							$(there.$el.find('#addUserTableDiv')).append(template).trigger('create');
+						});
 					},
 					addUserBtn: function(event){
 						if(teamInfo.teamMembers.length)
@@ -258,7 +269,9 @@ $(document).ready(function(){
 						router.navigate('',{trigger:true});
 					},
 					getAddUserTemplate: function(){
-						return $($('#addUserTemplate').html()).find('table');
+						var templates = $($('#addUserTemplate').html()).find('table');
+						return templates;
+						// return templates.length>1?templates:templates[0];
 					},
 					getAllUserNameTextEle: function(){
 						return $('[id=userNameEle]');
@@ -275,7 +288,7 @@ $(document).ready(function(){
 					},
 					render: function(){
 						this.$el.empty();
-						var header = appUtilities.appendHeader("Welcome to Rummy Game Board",'home', false);
+						var header = appUtilities.appendHeader("Rummy Score Board",'home', false);
 						var template = $('#mainTemplate').html();
 						this.$el.append(header).trigger('create');
 						this.$el.append(template).trigger('create');
