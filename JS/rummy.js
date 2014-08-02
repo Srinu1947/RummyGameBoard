@@ -143,13 +143,30 @@ $(document).ready(function(){
 					},
 					addScoreBtnClick: function(event){
 						var tr = $(event.target).closest('tr'),
+						playerScoreText = tr.find('#playerScoreText');
+						this.processScore(event, playerScoreText.val(), false);
+					},
+
+					foldBtnClick: function(event){
+						this.processScore(event, teamInfo.foldScore, true);
+					},
+					processScore: function(event, score, isFold){
+						var tr = $(event.target).closest('tr'),
 						playerScoreText = tr.find('#playerScoreText'),
 						playerName = tr.find('#userNameBtn').text(),
-						playerScore = playerScoreText.val();
-						if(!_.isNaN(parseInt(playerScore))){
-							if(playerName !== '' && playerScoreText.val() !== ''){
-								var updatedScore = this.addScoreToPlayer(playerName, playerScore, false);
-								tr.find('#scoreBtn').text(updatedScore);
+						playerScoreBtn = tr.find('#scoreBtn'),
+						playerFoldBtn = tr.find('#foldBtn'),
+						addScoreBtn = tr.find('#addScoreBtn');
+						if(!_.isNaN(parseInt(score))){
+							if(playerName !== '' && score !== ''){
+								var updatedScore = this.addScoreToPlayer(playerName, score, isFold);
+								playerScoreBtn.text(updatedScore);
+								if(updatedScore > teamInfo.totalScore) {
+									playerScoreText.addClass('ui-state-disabled');
+									playerScoreBtn.css('color', 'red');
+									addScoreBtn.addClass('ui-state-disabled');
+									playerFoldBtn.addClass('ui-state-disabled');
+								}
 							}
 							/* Updating the details */
 							playerScoreText.val('');
@@ -157,17 +174,6 @@ $(document).ready(function(){
 						} else {
 							playerScoreText.css('color','red');
 						}
-					},
-					foldBtnClick: function(event){
-						var tr = $(event.target).closest('tr'),
-						playerName = tr.find('#userNameBtn').text();
-
-						if(playerName !== ''){
-							tr.find('#scoreBtn').text(updatedScore);
-							var updatedScore = this.addScoreToPlayer(playerName, teamInfo.foldScore, true);
-						}
-						/* Updating details */
-						tr.find('#scoreBtn').text(updatedScore);
 					},
 					addScoreToPlayer: function(name, score, isFold){
 						var player = appUtilities.getPlayerInfoByName(name);
