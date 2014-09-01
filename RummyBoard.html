@@ -68,17 +68,18 @@
 		</script>
 		<!-- Template for Game Board -->
 		<script type="text/template" id="gameTemplate">
-			<table>
+			<table id="gameBoardTable">
 			{{#players}}
 				<tr>
 					<td> <button class="ui-btn ui-mini ui-shadow ui-corner-all ui-btn-icon-left ui-icon-user" id='userNameBtn'>{{name}}</button> </td>
 					<td> <input type="number" placeholder="Enter Score" id='playerScoreText'> </td>
-					<td> <button class="ui-btn ui-shadow ui-corner-all ui-btn-icon-right ui-icon-plus ui-btn-icon-notext ui-btn-b" id="addScoreBtn"> </td>
 					<td> <button class="ui-btn ui-btn-b ui-corner-all ui-mini" id='foldBtn'>Fold</button> </td>
 					<td> <button class="ui-btn ui-mini ui-shadow ui-corner-all ui-btn-icon-left ui-icon-star" id='scoreBtn'>{{score}}</button></td>
+					<td><p id='errorScoreMessage' style='color:red'></p></td>
 				</tr>
 			{{/players}}
 			</table>
+			<button id="updatePlayersScoreBtn" class="ui-btn ui-btn-b ui-shadow ui-corner-all">Update Score</button>
 		</script>
 		<!-- Template for player details -->
 		<script type="text/template" id='playerDetailTemplate'>

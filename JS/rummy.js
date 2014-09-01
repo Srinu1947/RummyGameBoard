@@ -9,7 +9,8 @@ $(document).ready(function(){
 				teamInfo.errorMessages = {
 					noPlayers:'Forgot to register player',
 					noPlayerName:'Please enter player name',
-					name_exists:'Name already registered'
+					name_exists:'Name already registered',
+					enter_score:'Please enter score'
 				};
 
 				/* Instance that holds each player details */
@@ -131,7 +132,8 @@ $(document).ready(function(){
 						'click #addScoreBtn' : 'addScoreBtnClick',
 						'click #foldBtn': 'foldBtnClick',
 						'click #userNameBtn': 'navigatePlayerDetailView',
-						'click #backButton': 'handleBackButtonClick'
+						'click #backButton': 'handleBackButtonClick',
+						'click #updatePlayersScoreBtn': 'updatePlayersScoreBtn'
 					},
 					render: function(){
 						this.$el.empty();
@@ -141,6 +143,29 @@ $(document).ready(function(){
 						var view = Mustache.render(template, json);
 						this.$el.append(view).trigger('create');
 					},
+					updatePlayersScoreBtn: function(event){
+						var trs = $("#gameBoardTable").find("tr");
+						var there = this;
+						var isAllScoresEntered = true;
+						_.each(trs, function(tr){
+							var playerName = $(tr).find('#userNameBtn').text(),
+							 score = $(tr).find("#playerScoreText").val();
+							var player = appUtilities.getPlayerInfoByName(playerName);
+							if(_.isNaN(parseInt(score)) && player.score < teamInfo.totalScore){
+								$(tr).find("#errorScoreMessage").text(teamInfo.errorMessages.enter_score);
+								isAllScoresEntered = false;
+							} else {
+								$(tr).find("#errorScoreMessage").text('');
+							}
+						});
+						if(isAllScoresEntered){
+							_.each(trs, function(tr){
+								var name = $(tr).find("#userNameBtn").text();
+								var score = $(tr).find("#playerScoreText").val();
+								there.processScore(tr, score, false);
+							});
+						}
+					},
 					addScoreBtnClick: function(event){
 						var tr = $(event.target).closest('tr'),
 						playerScoreText = tr.find('#playerScoreText');
@@ -148,10 +173,10 @@ $(document).ready(function(){
 					},
 
 					foldBtnClick: function(event){
-						this.processScore(event, teamInfo.foldScore, true);
+						$(event.target).closest('tr').find("#playerScoreText").val(teamInfo.foldScore);
 					},
-					processScore: function(event, score, isFold){
-						var tr = $(event.target).closest('tr'),
+					processScore: function(trr, score, isFold){
+						var tr = $(trr),
 						playerScoreText = tr.find('#playerScoreText'),
 						playerName = tr.find('#userNameBtn').text(),
 						playerScoreBtn = tr.find('#scoreBtn'),
